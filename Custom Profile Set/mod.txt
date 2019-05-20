@@ -1,7 +1,7 @@
 {
     "name" : "Custom Profile Set",
     "description" : "Extend profiles/skill sets and their functionality.",
-    "author" : "Jindetta",
+    "author" : "Jindetta, Humping Koala",
     "contact" : "http://modwork.shop/18071",
     "version" : "1.6",
     "blt_version" : 2,
