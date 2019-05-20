@@ -3,11 +3,11 @@
     "description" : "Extend profiles/skill sets and their functionality.",
     "author" : "Jindetta",
     "contact" : "http://modwork.shop/18071",
-    "version" : "1.5",
+    "version" : "1.6",
     "blt_version" : 2,
     "updates" : [
         {
-            "revision" : 13,
+            "revision" : 14,
             "identifier" : "CustomProfileSets"
         }
     ],
