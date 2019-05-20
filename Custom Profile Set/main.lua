@@ -378,6 +378,19 @@ function CustomProfileSet:SetupHooks()
                 td.MAX_WEAPON_SLOTS = td.MAX_WEAPON_PAGES * td.WEAPON_ROWS_PER_PAGE * td.WEAPON_COLUMNS_PER_PAGE
             end)
         elseif RequiredScript == "lib/managers/menu/multiprofileitemgui" then
+                Hooks:PreHook( MultiProfileItemGui, "init", "CPS_ProfileItemGui_Pre_Init", function( td, ws, panel )
+                local profile_panel_width = 40 + 10 * ( self.custom_input_limit or 15 )
+                td._panel = td._panel or panel:panel({
+                    w = profile_panel_width,
+                    h = 36 + td.quick_panel_h
+                })
+
+                td._profile_panel = td._profile_panel or td._panel:panel({
+                    w = profile_panel_width,
+                    h = 36,
+                    y = td.quick_panel_h
+                })
+            end)
             Hooks:PostHook( MultiProfileItemGui, "init", "CPS_ProfileItemGui_Init", function( td )
                 td._max_length = self.custom_input_limit or 15
             end)
