@@ -185,9 +185,7 @@ function CustomProfileSet:SetupHooks()
                             if i > self.custom_profiles then
                                 break
                             end
-                            if not gd._global._profiles[default_value + i] then
-                                gd:_add_profile(profile, default_value + i)
-                            end
+                            gd:_add_profile(profile, default_value + i)
                         end
 
                         gd._global._current_profile =
@@ -247,12 +245,10 @@ function CustomProfileSet:SetupHooks()
                             if i > self.custom_skill_sets then
                                 break
                             end
-                            if not gd._global.skill_switches[default_value + i] then
-                                if lock_additional_skillsets then
-                                    skill_set.unlocked = false
-                                end
-                                gd._global.skill_switches[default_value + i] = skill_set
+                            if lock_additional_skillsets then
+                                skill_set.unlocked = false
                             end
+                            gd._global.skill_switches[default_value + i] = skill_set
                         end
 
                         gd._global.selected_skill_switch =
