@@ -454,8 +454,8 @@ function CustomProfileSet:SetupHooks()
                         td._panel or
                         panel:panel(
                             {
-                                w = profile_panel_width,
-                                h = 36 + td.quick_panel_h
+                                w = 36 + 5 + profile_panel_width,
+                                h = 36
                             }
                         )
 
@@ -464,8 +464,7 @@ function CustomProfileSet:SetupHooks()
                         td._panel:panel(
                             {
                                 w = profile_panel_width,
-                                h = 36,
-                                y = td.quick_panel_h
+                                h = 36
                             }
                         )
                 end
