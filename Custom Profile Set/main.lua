@@ -120,6 +120,8 @@ function CustomProfileSet:Load()
         local valid, data = pcall(json.decode, f:read("*a"))
         if valid and type(data) == "table" then
             self._data = data
+            self._applied_profiles = false
+            self._applied_skills = false
         end
 
         f:close()
@@ -180,7 +182,7 @@ function CustomProfileSet:SetupHooks()
                 "load",
                 "CPS_ProfileManager_Load",
                 function(gd, data)
-                    if type(self._data[user].profiles) == "table" then
+                    if not self._applied_profiles and type(self._data[user].profiles) == "table" then
                         for i, profile in ipairs(self._data[user].profiles) do
                             if i > self.custom_profiles then
                                 break
@@ -191,6 +193,7 @@ function CustomProfileSet:SetupHooks()
                         gd._global._current_profile =
                             self._data[user].current_profile or data.multi_profile.current_profile
                         gd:_check_amount()
+                        self._applied_profiles = true
                     end
                 end
             )
@@ -239,7 +242,7 @@ function CustomProfileSet:SetupHooks()
                 "load",
                 "CPS_SkillManager_Load",
                 function(gd, data)
-                    if type(self._data[user].skill_sets) == "table" then
+                    if not self._applied_skills and type(self._data[user].skill_sets) == "table" then
                         local lock_additional_skillsets = gd:default_skillsets_locked()
                         for i, skill_set in ipairs(self._data[user].skill_sets) do
                             if i > self.custom_skill_sets then
@@ -253,6 +256,7 @@ function CustomProfileSet:SetupHooks()
 
                         gd._global.selected_skill_switch =
                             self._data[user].current_skillset or data.SkillTreeManager.selected_skill_switch
+                        self._applied_skills = true
                     end
                 end
             )
