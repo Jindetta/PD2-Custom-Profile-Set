@@ -1,6 +1,5 @@
-local default_value, user, this =
+local default_value, this =
     15,
-    Steam:userid(),
     {
         name = "menu_custom_profile_sets_id",
         description = "menu_custom_profile_sets_desc",
@@ -44,9 +43,363 @@ local default_value, user, this =
         max_input_value = 50
     }
 
-CustomProfileSet = CustomProfileSet or {}
-CustomProfileSet._lang = ModPath .. "localization/"
-CustomProfileSet._path = SavePath .. "profiles_data.json"
+if not CustomProfileSet then
+    local Self = {_data = {}}
+
+    Self._lang = ModPath .. "localization/"
+    Self._profile_dir = SavePath .. "custom_profiles/"
+    Self._profile_data = Self._profile_dir .. "profiles.json"
+
+    function Self.profile_path(profile)
+        if type(profile) == "number" then
+            return Self._profile_dir .. ("%d.json"):format(profile), true
+        end
+
+        return Self._profile_data, false
+    end
+
+    function Self.save(profile)
+        local path, profile_loaded = Self.profile_path(profile)
+        local f = io.open(path, "w+")
+
+        if type(f) == "userdata" then
+            local valid, data = pcall(json.encode, Self._data)
+
+            if valid and type(data) == "string" then
+                f:write((data:gsub("%[%]", "{}")))
+            end
+
+            f:close()
+        end
+    end
+
+    function Self.load(profile)
+        local path, profile_loaded = Self.profile_path(profile)
+        local f = io.open(path, "r")
+
+        if type(f) == "userdata" then
+            local valid, data = pcall(json.decode, f:read("*a"))
+
+            if valid and type(data) == "table" then
+                Self._data = data
+                Self._applied_profiles = false
+                Self._applied_skills = false
+            end
+
+            f:close()
+        end
+    end
+
+    function Self.setup(script)
+        if script == "lib/managers/multiprofilemanager" then
+
+        elseif script == "lib/managers/skilltreemanager" then
+
+        elseif script == "lib/managers/menu/renderers/menunodeskillswitchgui" then
+
+        elseif script == "lib/tweak_data/skilltreetweakdata" then
+
+        elseif script == "lib/tweak_data/guitweakdata" then
+
+        elseif script == "lib/managers/menu/multiprofileitemgui" then
+
+        else
+            Hooks:Add("LocalizationManagerPostInit", "CPSMod_LocalizationManager_PostInit", function(self)
+                local localization_strings = {
+                    [this.name] = "Custom Profile Set",
+                    [this.description] = 'Change "Custom Profile Set" settings.',
+                    [this.profile_name] = "Number of additional profiles",
+                    [this.profile_description] = 'Additional profiles limit.\nIncreasing this number will grow "configuration" filesize.',
+                    [this.skills_name] = "Number of additional skill sets",
+                    [this.skills_description] = 'Additional skill sets limit.\nIncreasing this number will grow "configuration" filesize.',
+                    [this.input_name] = "Number of allowed input characters",
+                    [this.input_description] = "Maximum number of allowed input characters.\nApplies to weapon, skill set and profile names.",
+                    [this.masks_name] = "Number of additional mask pages",
+                    [this.masks_description] = "Additional mask pages limit.\nAll masks are stored in in-game savefile.",
+                    [this.weapons_name] = "Number of additional weapon pages",
+                    [this.weapons_description] = "Additional weapon pages limit.\nAll weapons are stored in in-game savefile.",
+                    [this.rearrange_name] = "Rearrange profile data (skill set)",
+                    [this.rearrange_description] = "Adjust each profile (#n) to its corresponding skill set (#n).",
+                    [this.save_name] = "Save values",
+                    [this.save_description] = "Save configuration.\nChanges are applied only after the game is restarted.",
+                    [this.reset_name] = "Reset values",
+                    [this.reset_description] = "Reset values back to default.\nThis does not save configuration.",
+                    [this.dialog_saved] = "All settings saved.\n\nRestart the game for settings to take effect.",
+                    [this.dialog_launch] = "Setup is required.\nIf you skip this step then, mod is disabled until setup is completed.",
+                    [this.dialog_rearrange] = "Warning: These changes are irreversible.\nAll profiles will be adjusted to their corresponding skill sets.",
+                    [this.dialog_continue] = "Continue",
+                    [this.dialog_setup] = "Setup now",
+                    [this.dialog_skip] = "Skip",
+                    [this.skill_menu_name] = "Skill set: $name",
+                    [this.skill_menu_description] = "Perk Deck: $name",
+                    [this.skill_menu_copy] = "Copy",
+                    [this.skill_menu_paste] = "Paste",
+                    [this.skill_menu_swap] = "Swap active",
+                    [this.skill_menu_respec] = "Respec",
+                    [this.skill_menu_cancel] = "Cancel",
+                    [this.requirements_text] = "All default skill sets must be unlocked first"
+                }
+
+                if Self.custom_skill_sets > this.min_setup_value then
+                    local name = tweak_data.skilltree.skill_switches[1].name_id
+                    local text = self:text(name) or localization_strings[this.name]
+
+                    for i = default_value + 1, default_value + Self.custom_skill_sets do
+                        localization_strings[name:gsub("1", i)] = text:gsub("1", i)
+                    end
+                end
+
+                self:add_localized_strings(localization_strings)
+                self:load_localization_file(Self.load_language())
+            end)
+
+            Hooks:Add("MenuManagerSetupCustomMenus", "CPSMod_MenuManager_CustomMenus", function()
+                MenuHelper:NewMenu(this.name)
+
+                this._values_storage = {
+                    profiles = self.custom_profiles,
+                    skillsets = self.custom_skill_sets,
+                    max_input = self.custom_input_limit,
+                    mask_pages = self.custom_mask_pages,
+                    weapon_pages = self.custom_weapon_pages
+                }
+
+                MenuCallbackHandler[this.name] = function(_, item)
+                    local name, value = item:name(), function()
+                            return (math.modf(item:value()))
+                        end
+    
+                    if name == this.profile_name then
+                        this._values_storage.profiles = value()
+                    elseif name == this.skills_name then
+                        this._values_storage.skillsets = value()
+                    elseif name == this.input_name then
+                        this._values_storage.max_input = value()
+                    elseif name == this.masks_name then
+                        this._values_storage.mask_pages = value()
+                    elseif name == this.weapons_name then
+                        this._values_storage.weapon_pages = value()
+                    elseif name == this.save_name then
+                        Self._data.setup = {
+                            profiles = this._values_storage.profiles,
+                            skillsets = this._values_storage.skillsets,
+                            max_input = this._values_storage.max_input,
+                            mask_pages = this._values_storage.mask_pages,
+                            weapon_pages = this._values_storage.weapon_pages
+                        }
+
+                        Self.save()
+                        managers.savefile:save_progress()
+                        managers.menu:back()
+    
+                        QuickMenu:new(
+                            managers.localization:text(this.name),
+                            managers.localization:text(this.dialog_saved),
+                            {},
+                            true
+                        )
+                    elseif name == this.rearrange_name then
+                        QuickMenu:new(
+                            managers.localization:text(this.rearrange_name),
+                            managers.localization:text(this.dialog_rearrange),
+                            {
+                                {
+                                    text = managers.localization:text(this.dialog_continue),
+                                    callback = function()
+                                        Global.skilltree_manager.selected_skill_switch =
+                                            Global.multi_profile._current_profile
+                                        for profile_id, profile_data in ipairs(Global.multi_profile._profiles) do
+                                            profile_data.skillset = profile_id
+                                        end
+                                    end
+                                },
+                                {
+                                    text = managers.localization:text(this.dialog_skip),
+                                    is_cancel_button = true
+                                }
+                            },
+                            true
+                        )
+                    elseif name == this.reset_name then
+                        local setup_data = {
+                            [this.profile_name] = {_ = "profiles", v = this.default_profiles_limit},
+                            [this.skills_name] = {_ = "skillsets", v = this.default_skillsets_limit},
+                            [this.input_name] = {_ = "max_input", v = this.default_max_input_limit},
+                            [this.masks_name] = {_ = "mask_pages", v = this.default_inventory_pages},
+                            [this.weapons_name] = {_ = "weapon_pages", v = this.default_inventory_pages}
+                        }
+    
+                        for k, v in ipairs(Self.node._items) do
+                            if setup_data[v:name()] then
+                                k = setup_data[v:name()]
+                                this._values_storage[k._] = k.v
+                                v:set_value(k.v)
+                                v:reload()
+                            end
+                        end
+                    end
+                end
+            end)
+
+            Hooks:Add("MenuManagerPopulateCustomMenus", "CPSMod_MenuManager_PopulateCustomMenus", function()
+                MenuHelper:AddSlider(
+                    {
+                        priority = 11,
+                        callback = this.name,
+                        id = this.profile_name,
+                        title = this.profile_name,
+                        desc = this.profile_description,
+                        value = Self.custom_profiles,
+                        min = this.min_setup_value,
+                        max = this.max_setup_value,
+                        menu_id = this.name
+                    }
+                )
+                MenuHelper:AddSlider(
+                    {
+                        priority = 10,
+                        callback = this.name,
+                        id = this.skills_name,
+                        title = this.skills_name,
+                        desc = this.skills_description,
+                        value = Self.custom_skill_sets,
+                        min = this.min_setup_value,
+                        max = this.max_setup_value,
+                        menu_id = this.name
+                    }
+                )
+                MenuHelper:AddDivider(
+                    {
+                        size = 4,
+                        priority = 9,
+                        menu_id = this.name
+                    }
+                )
+                MenuHelper:AddSlider(
+                    {
+                        priority = 8,
+                        callback = this.name,
+                        id = this.input_name,
+                        title = this.input_name,
+                        desc = this.input_description,
+                        value = Self.custom_input_limit,
+                        min = this.min_input_value,
+                        max = this.max_input_value,
+                        menu_id = this.name
+                    }
+                )
+                MenuHelper:AddDivider(
+                    {
+                        size = 4,
+                        priority = 7,
+                        menu_id = this.name
+                    }
+                )
+                MenuHelper:AddSlider(
+                    {
+                        priority = 6,
+                        callback = this.name,
+                        id = this.masks_name,
+                        title = this.masks_name,
+                        desc = this.masks_description,
+                        value = Self.custom_mask_pages,
+                        min = this.min_setup_value,
+                        max = this.max_setup_value,
+                        menu_id = this.name
+                    }
+                )
+                MenuHelper:AddSlider(
+                    {
+                        priority = 5,
+                        callback = this.name,
+                        id = this.weapons_name,
+                        title = this.weapons_name,
+                        desc = this.weapons_description,
+                        value = Self.custom_weapon_pages,
+                        min = this.min_setup_value,
+                        max = this.max_setup_value,
+                        menu_id = this.name
+                    }
+                )
+                MenuHelper:AddDivider(
+                    {
+                        priority = 4,
+                        menu_id = this.name
+                    }
+                )
+                MenuHelper:AddButton(
+                    {
+                        priority = 3,
+                        callback = this.name,
+                        id = this.rearrange_name,
+                        title = this.rearrange_name,
+                        desc = this.rearrange_description,
+                        menu_id = this.name
+                    }
+                )
+                MenuHelper:AddDivider(
+                    {
+                        priority = 2,
+                        menu_id = this.name
+                    }
+                )
+                MenuHelper:AddButton(
+                    {
+                        priority = 1,
+                        callback = this.name,
+                        id = this.save_name,
+                        title = this.save_name,
+                        desc = this.save_description,
+                        menu_id = this.name
+                    }
+                )
+                MenuHelper:AddButton(
+                    {
+                        priority = 0,
+                        callback = this.name,
+                        id = this.reset_name,
+                        title = this.reset_name,
+                        desc = this.reset_description,
+                        menu_id = this.name
+                    }
+                )
+            end)
+
+            Hooks:Add("MenuManagerBuildCustomMenus", "CPSMod_MenuManager_BuildCustomMenus", function(_, nodes)
+                Self.node = MenuHelper:BuildMenu(this.name)
+
+                MenuHelper:AddMenuItem(
+                    nodes[LuaModManager.Constants._lua_mod_options_menu_id],
+                    this.name,
+                    this.name,
+                    this.description
+                )
+
+                nodes[this.name] = Self.node
+
+                for k, v in ipairs(Self.node._items) do
+                    if v._type == "slider" then
+                        v.reload = function(self, item)
+                            local p = self:percentage() / 100
+                            item = item or v._parameters.gui_node.row_items[k]
+                            item.gui_slider_text:set_text(("#%d"):format(self:value()))
+                            item.gui_slider_marker:set_center_x(item.gui_slider:left() + item.gui_slider:w() * p)
+                            item.gui_slider_gfx:set_w(item.gui_slider:w() * p)
+                            return true
+                        end
+                    end
+
+                    v:set_enabled(self._is_rearrange and not nodes.pause or v:name() ~= this.rearrange_name)
+                end
+            end)
+        end
+    end
+
+    --CustomProfileSet = Self
+    --Self.load()
+end
+
+--CustomProfileSet.setup(RequiredScript)
 
 function CustomProfileSet:IsInit()
     self._data = self._data or {}
@@ -783,5 +1136,3 @@ function CustomProfileSet:SetupHooks()
         end
     )
 end
-
-CustomProfileSet:SetupHooks()
